@@ -10,7 +10,6 @@ use crate::types::config::Config;
 use crate::types::robot::Robot;
 use crate::types::task::{Task, TaskPriority};
 use crate::types::zone::ZoneId;
-use crate::util::id_generator::next_task_id;
 use std::time::Duration;
 
 pub const STRESS_TEST_WORKER_COUNT: usize = 12;
@@ -239,7 +238,7 @@ impl CoordinatorBuilder {
         let effective_worker_count = effective_worker_count(&self.config);
 
         for plan in demo_task_plans(effective_task_count) {
-            let mut task = Task::new(next_task_id(), plan.name, plan.expected_duration);
+            let mut task = Task::new(plan.sequence, plan.name, plan.expected_duration);
             task.priority = plan.priority;
             task.required_zone = plan.required_zone;
 

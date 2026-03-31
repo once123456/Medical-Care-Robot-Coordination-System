@@ -21,7 +21,7 @@ pub struct Config {
     /// zone allocation path. When `false`, the classic blocking path is used.
     /// This toggle exists for A/B comparison experiments.
     #[serde(default = "default_use_work_stealing")]
-    pub use_work_stealing: bool,
+        pub use_work_stealing: bool,
     /// When `true`, run with backend-defined stress-test preset values.
     /// Effective worker/task counts are resolved in coordinator builder.
     #[serde(default = "default_use_stress_preset")]
@@ -40,8 +40,8 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             scheduler: SchedulerKind::Fifo,
-            worker_count: 9,
-            demo_task_count: 20,
+            worker_count: 10,
+            demo_task_count: 30,
             // Default to classic mode so the frontend can explicitly compare both modes via toggle.
             use_work_stealing: false,
             use_stress_preset: false,

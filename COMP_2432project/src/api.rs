@@ -305,6 +305,9 @@ fn snapshot_state_inner(app: &AppState) -> SystemState {
     let hb_timeout = Duration::from_secs(5);
     let effective_tasks = effective_demo_task_count(&guard.config);
     let effective_workers = effective_worker_count(&guard.config);
+    let mut effective_config = guard.config.clone();
+    effective_config.worker_count = effective_workers;
+    effective_config.demo_task_count = effective_tasks;
     let demo_plans = demo_task_plans(effective_tasks);
     let scheduling_analysis = build_scheduling_analysis(&demo_plans, effective_workers);
     let task_snapshots = guard.task_table.all();
@@ -430,7 +433,7 @@ fn snapshot_state_inner(app: &AppState) -> SystemState {
         tasks,
         robots,
         zones,
-        config: guard.config.clone(),
+        config: effective_config,
         metrics: Metrics {
             throughput,
             avg_latency_ms,
