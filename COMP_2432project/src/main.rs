@@ -5,7 +5,6 @@
 use std::env;
 use std::net::SocketAddr;
 use std::process::ExitCode;
-use std::thread;
 
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
@@ -27,21 +26,12 @@ async fn main() -> ExitCode {
     let server_only = args.iter().any(|arg| arg == "--server-only");
     let state = AppState::new();
 
-    if !server_only {
-        let cli_state = state.clone();
-        thread::spawn(move || {
-            if let Err(error) = run_interactive_loop(cli_state) {
-                eprintln!("Interactive CLI stopped: {error}");
-            }
-        });
-    }
-
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let app: Router = build_router(state).layer(cors);
+    let app: Router = build_router(state.clone()).layer(cors);
 
     let port = env::var("PORT")
         .ok()
@@ -72,10 +62,30 @@ async fn main() -> ExitCode {
         println!("Interactive terminal CLI is active in this terminal. The frontend can stay connected at the same time.");
     }
 
-    if let Err(error) = axum::serve(listener, app).await {
-        eprintln!("HTTP API server exited with error: {error}");
-        return ExitCode::FAILURE;
+    if server_only {
+        if let Err(error) = axum::serve(listener, app).await {
+            eprintln!("HTTP API server exited with error: {error}");
+            return ExitCode::FAILURE;
+        }
+
+        return ExitCode::SUCCESS;
     }
 
-    ExitCode::SUCCESS
+    let server_handle = tokio::spawn(async move { axum::serve(listener, app).await });
+
+    if let Err(error) = run_interactive_loop(state) {
+        eprintln!("Interactive CLI stopped: {error}");
+    }
+
+    match server_handle.await {
+        Ok(Ok(())) => ExitCode::SUCCESS,
+        Ok(Err(error)) => {
+            eprintln!("HTTP API server exited with error: {error}");
+            ExitCode::FAILURE
+        }
+        Err(error) => {
+            eprintln!("HTTP API server task failed: {error}");
+            ExitCode::FAILURE
+        }
+    }
 }
