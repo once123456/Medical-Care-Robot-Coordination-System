@@ -5,15 +5,36 @@
 use std::env;
 use std::net::SocketAddr;
 use std::process::ExitCode;
+use std::thread;
 
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
 
 use COMP_2432project::api::{AppState, build_router};
+use COMP_2432project::terminal_cli::{print_usage, run_interactive_loop};
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.iter().any(|arg| arg == "--help" || arg == "-h") {
+        print_usage();
+        println!();
+        println!("Server options:");
+        println!("  --server-only   Start the HTTP API without the interactive terminal CLI");
+        return ExitCode::SUCCESS;
+    }
+
+    let server_only = args.iter().any(|arg| arg == "--server-only");
     let state = AppState::new();
+
+    if !server_only {
+        let cli_state = state.clone();
+        thread::spawn(move || {
+            if let Err(error) = run_interactive_loop(cli_state) {
+                eprintln!("Interactive CLI stopped: {error}");
+            }
+        });
+    }
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -45,6 +66,11 @@ async fn main() -> ExitCode {
     };
 
     println!("HTTP API server listening on http://{addr}");
+    if server_only {
+        println!("Interactive terminal CLI disabled (--server-only).");
+    } else {
+        println!("Interactive terminal CLI is active in this terminal. The frontend can stay connected at the same time.");
+    }
 
     if let Err(error) = axum::serve(listener, app).await {
         eprintln!("HTTP API server exited with error: {error}");

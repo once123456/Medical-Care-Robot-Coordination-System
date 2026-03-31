@@ -10,6 +10,7 @@ pub mod monitor;
 pub mod prelude;
 pub mod scheduler;
 pub mod sync;
+pub mod terminal_cli;
 pub mod types;
 pub mod util;
 pub mod worker;
